@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Music Player</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+  <body>
+    <main class="app">
+      <header class="header">
+        <div>
+          <h1>Music Player</h1>
+          <p class="subtitle">Local-only Flask player</p>
+        </div>
+        <form class="folder-form" method="post">
+          <label for="music_directory">Music folder path</label>
+          <div class="folder-input">
+            <input
+              id="music_directory"
+              name="music_directory"
+              type="text"
+              value="{{ music_directory }}"
+              placeholder="C:\Music\MySongs"
+              autocomplete="off"
+            >
+            <button type="submit">Load</button>
+            <button type="button" id="chooseFolderBtn">Choose Folder</button>
+          </div>
+          {% if error %}
+            <p class="error">{{ error }}</p>
+          {% endif %}
+          <input
+            id="folderPicker"
+            type="file"
+            webkitdirectory
+            multiple
+            hidden
+          >
+        </form>
+      </header>
+
+      <section class="layout">
+        <aside class="panel sidebar">
+          <div class="section-header">
+            <h2>Playlists</h2>
+          </div>
+          <div class="playlist-create">
+            <input
+              id="playlistName"
+              type="text"
+              placeholder="New playlist name"
+              autocomplete="off"
+            >
+            <button type="button" id="createPlaylistBtn">Create</button>
+          </div>
+          <ul class="playlist-list" id="playlistList">
+            <li class="playlist-item active" data-playlist="All Songs">All Songs</li>
+          </ul>
+        </aside>
+
+        <section class="panel song-panel">
+          <div class="section-header">
+            <h2>Songs</h2>
+            <span class="count">{{ songs|length }}</span>
+          </div>
+          <div class="playlist-target">
+            <label for="playlistSelect">Add to playlist</label>
+            <select id="playlistSelect"></select>
+          </div>
+          <ul class="song-list" id="songList">
+            {% for song in songs %}
+              <li>
+                <div class="song-row">
+                  <button class="song-item" data-file="{{ song }}">{{ song }}</button>
+                  <button class="add-btn" type="button">Add</button>
+                </div>
+              </li>
+            {% else %}
+              <li class="empty">No songs loaded yet.</li>
+            {% endfor %}
+          </ul>
+        </section>
+      </section>
+
+      <section class="panel player">
+        <div class="now-playing">
+          <span>Now playing:</span>
+          <strong id="nowPlaying">Nothing selected</strong>
+        </div>
+        <div class="controls">
+          <button class="control-btn" id="prevBtn" type="button" aria-label="Previous">
+            <img src="{{ url_for('static', filename='previous.png') }}" alt="Previous">
+          </button>
+          <button class="control-btn primary" id="playPauseBtn" type="button" aria-label="Play">
+            <img
+              id="playPauseIcon"
+              src="{{ url_for('static', filename='play.png') }}"
+              alt="Play"
+            >
+          </button>
+          <button class="control-btn" id="nextBtn" type="button" aria-label="Next">
+            <img src="{{ url_for('static', filename='next.png') }}" alt="Next">
+          </button>
+          <button class="control-btn shuffle" id="shuffleBtn" type="button">Shuffle</button>
+        </div>
+        <div class="time-display">
+          <span id="currentTime">0:00</span>
+          <span>/</span>
+          <span id="duration">0:00</span>
+        </div>
+        <audio id="audioPlayer" controls preload="none"></audio>
+      </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+  </body>
+</html>
