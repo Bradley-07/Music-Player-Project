@@ -5,6 +5,7 @@ app = Flask(__name__)
 
 music_directory = ""
 songs_cache = []
+repeat_enabled = False
 
 
 def scan_songs(path):
@@ -17,6 +18,12 @@ def scan_songs(path):
         if ext.lower() in (".mp3", ".wav", ".ogg"):
             songs.append(name)
     return songs
+
+
+def set_repeat(enabled):
+    global repeat_enabled
+    repeat_enabled = bool(enabled)
+    return repeat_enabled
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -47,6 +54,13 @@ def play(filename):
     if not music_directory or filename not in songs_cache:
         abort(404)
     return send_from_directory(music_directory, filename)
+
+
+@app.route("/repeat", methods=["POST"])
+def repeat():
+    data = request.get_json(silent=True) or {}
+    enabled = data.get("enabled", False)
+    return {"repeat": set_repeat(enabled)}
 
 
 if __name__ == "__main__":

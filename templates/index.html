@@ -6,7 +6,7 @@
     <title>Music Player</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   </head>
-  <body>
+  <body data-theme="dark">
     <main class="app">
       <header class="header">
         <div>
@@ -42,21 +42,64 @@
 
       <section class="layout">
         <aside class="panel sidebar">
-          <div class="section-header">
-            <h2>Playlists</h2>
+          <div class="sidebar-stack">
+            <div class="section-header">
+              <h2>Playlists</h2>
+            </div>
+            <div class="playlist-create">
+              <input
+                id="playlistName"
+                type="text"
+                placeholder="New playlist name"
+                autocomplete="off"
+              >
+              <button type="button" id="createPlaylistBtn">Create</button>
+            </div>
+            <ul class="playlist-list" id="playlistList">
+              <li class="playlist-item active" data-playlist="All Songs">All Songs</li>
+            </ul>
           </div>
-          <div class="playlist-create">
-            <input
-              id="playlistName"
-              type="text"
-              placeholder="New playlist name"
-              autocomplete="off"
-            >
-            <button type="button" id="createPlaylistBtn">Create</button>
+          <div class="appearance-panel">
+            <div class="section-header">
+              <h2>Appearance</h2>
+              <span class="count">Theme + background</span>
+            </div>
+            <div class="appearance-controls">
+              <div class="theme-toggle" role="group" aria-label="Theme">
+                <button class="theme-btn" type="button" data-theme="dark">Black</button>
+                <button class="theme-btn" type="button" data-theme="light">White</button>
+              </div>
+              <div class="bg-picker">
+                <span class="bg-label">Background glow</span>
+                <div class="swatch-grid" role="list">
+                  <button class="bg-swatch" type="button" data-color="#3d8bfd" aria-label="Blue"></button>
+                  <button class="bg-swatch" type="button" data-color="#7c4dff" aria-label="Violet"></button>
+                  <button class="bg-swatch" type="button" data-color="#ff7ab6" aria-label="Pink"></button>
+                  <button class="bg-swatch" type="button" data-color="#ff8a5b" aria-label="Coral"></button>
+                  <button class="bg-swatch" type="button" data-color="#ffc857" aria-label="Amber"></button>
+                  <button class="bg-swatch" type="button" data-color="#ffe66d" aria-label="Butter"></button>
+                  <button class="bg-swatch" type="button" data-color="#a4f7c3" aria-label="Mint"></button>
+                  <button class="bg-swatch" type="button" data-color="#2dd4bf" aria-label="Teal"></button>
+                  <button class="bg-swatch" type="button" data-color="#22d3ee" aria-label="Cyan"></button>
+                  <button class="bg-swatch" type="button" data-color="#60a5fa" aria-label="Sky"></button>
+                  <button class="bg-swatch" type="button" data-color="#4f46e5" aria-label="Indigo"></button>
+                  <button class="bg-swatch" type="button" data-color="#9333ea" aria-label="Purple"></button>
+                  <button class="bg-swatch" type="button" data-color="#f43f5e" aria-label="Rose"></button>
+                  <button class="bg-swatch" type="button" data-color="#fb7185" aria-label="Blush"></button>
+                  <button class="bg-swatch" type="button" data-color="#f97316" aria-label="Orange"></button>
+                  <button class="bg-swatch" type="button" data-color="#34d399" aria-label="Emerald"></button>
+                  <button class="bg-swatch" type="button" data-color="#10b981" aria-label="Green"></button>
+                  <button class="bg-swatch" type="button" data-color="#06b6d4" aria-label="Aqua"></button>
+                  <button class="bg-swatch" type="button" data-color="#38bdf8" aria-label="Ice"></button>
+                  <button class="bg-swatch" type="button" data-color="#c4b5fd" aria-label="Lavender"></button>
+                </div>
+                <label class="custom-color">
+                  <input id="bgColorPicker" type="color" value="#3d8bfd" aria-label="Custom background color">
+                  <span>Custom</span>
+                </label>
+              </div>
+            </div>
           </div>
-          <ul class="playlist-list" id="playlistList">
-            <li class="playlist-item active" data-playlist="All Songs">All Songs</li>
-          </ul>
         </aside>
 
         <section class="panel song-panel">
@@ -103,6 +146,7 @@
             <img src="{{ url_for('static', filename='next.png') }}" alt="Next">
           </button>
           <button class="control-btn shuffle" id="shuffleBtn" type="button">Shuffle</button>
+          <button class="control-btn repeat" id="repeatBtn" type="button">Repeat</button>
         </div>
         <div class="time-display">
           <span id="currentTime">0:00</span>

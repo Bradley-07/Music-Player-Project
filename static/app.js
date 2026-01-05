@@ -14,6 +14,10 @@ const chooseFolderBtn = document.getElementById("chooseFolderBtn");
 const folderPicker = document.getElementById("folderPicker");
 const currentTimeDisplay = document.getElementById("currentTime");
 const durationDisplay = document.getElementById("duration");
+const themeButtons = document.querySelectorAll(".theme-btn");
+const bgSwatches = document.querySelectorAll(".bg-swatch");
+const bgColorPicker = document.getElementById("bgColorPicker");
+const repeatBtn = document.getElementById("repeatBtn");
 
 let currentIndex = -1;
 let activePlaylist = "All Songs";
@@ -22,9 +26,116 @@ let songButtons = [];
 let allSongs = [];
 let shuffleEnabled = false;
 let shuffleHistory = [];
+let repeatEnabled = false;
 const playlists = {
   "All Songs": [],
 };
+
+function applyTheme(theme) {
+  document.body.dataset.theme = theme;
+  themeButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.theme === theme);
+  });
+  localStorage.setItem("theme", theme);
+}
+
+function hexToRgb(value) {
+  if (!value) {
+    return null;
+  }
+  let hex = value.replace("#", "").trim();
+  if (hex.length === 3) {
+    hex = hex
+      .split("")
+      .map((char) => char + char)
+      .join("");
+  }
+  if (hex.length !== 6) {
+    return null;
+  }
+  const number = Number.parseInt(hex, 16);
+  if (Number.isNaN(number)) {
+    return null;
+  }
+  return {
+    r: (number >> 16) & 255,
+    g: (number >> 8) & 255,
+    b: number & 255,
+  };
+}
+
+function applyBackground(color) {
+  const rgb = hexToRgb(color);
+  if (!rgb) {
+    return;
+  }
+  const glow1 = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.36)`;
+  const glow2 = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.22)`;
+  document.body.style.setProperty("--bg-glow-1", glow1);
+  document.body.style.setProperty("--bg-glow-2", glow2);
+  localStorage.setItem("bgColor", color);
+  if (bgColorPicker) {
+    bgColorPicker.value = color;
+  }
+  bgSwatches.forEach((swatch) => {
+    swatch.classList.toggle(
+      "active",
+      swatch.dataset.color?.toLowerCase() === color.toLowerCase(),
+    );
+  });
+}
+
+const storedTheme = localStorage.getItem("theme");
+const prefersLight =
+  window.matchMedia &&
+  window.matchMedia("(prefers-color-scheme: light)").matches;
+const initialTheme = storedTheme || (prefersLight ? "light" : "dark");
+applyTheme(initialTheme);
+
+const storedBgColor = localStorage.getItem("bgColor") || "#3d8bfd";
+applyBackground(storedBgColor);
+
+themeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    applyTheme(button.dataset.theme);
+  });
+});
+
+bgSwatches.forEach((swatch) => {
+  if (swatch.dataset.color) {
+    swatch.style.setProperty("--swatch-color", swatch.dataset.color);
+  }
+  swatch.addEventListener("click", () => {
+    const color = swatch.dataset.color;
+    if (color) {
+      applyBackground(color);
+    }
+  });
+});
+
+if (bgColorPicker) {
+  bgColorPicker.addEventListener("input", () => {
+    applyBackground(bgColorPicker.value);
+  });
+}
+
+if (repeatBtn) {
+  const storedRepeat = localStorage.getItem("repeat") === "true";
+  repeatEnabled = storedRepeat;
+  repeatBtn.classList.toggle("active", repeatEnabled);
+  repeatBtn.setAttribute("aria-pressed", repeatEnabled ? "true" : "false");
+  audioPlayer.loop = repeatEnabled;
+}
+
+function syncRepeatSetting(enabled) {
+  fetch("/repeat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ enabled }),
+  }).catch(() => {});
+}
 
 function buildSongList(songs, showAdd, showRemove) {
   songList.innerHTML = "";
@@ -302,6 +413,17 @@ shuffleBtn.addEventListener("click", () => {
   shuffleEnabled = !shuffleEnabled;
   shuffleBtn.classList.toggle("active", shuffleEnabled);
 });
+
+if (repeatBtn) {
+  repeatBtn.addEventListener("click", () => {
+    repeatEnabled = !repeatEnabled;
+    audioPlayer.loop = repeatEnabled;
+    repeatBtn.classList.toggle("active", repeatEnabled);
+    repeatBtn.setAttribute("aria-pressed", repeatEnabled ? "true" : "false");
+    localStorage.setItem("repeat", repeatEnabled ? "true" : "false");
+    syncRepeatSetting(repeatEnabled);
+  });
+}
 
 initAllSongsFromDom();
 
