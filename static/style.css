@@ -564,6 +564,26 @@ body[data-theme="light"] {
   color: var(--muted);
 }
 
+.toast {
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--surface-alt);
+  color: var(--text);
+  font-size: 13px;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+  border-color: var(--surface-border);
+}
+
 .playlist-target select {
   flex: 1;
   padding: 8px 10px;

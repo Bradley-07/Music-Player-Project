@@ -18,6 +18,7 @@ const themeButtons = document.querySelectorAll(".theme-btn");
 const bgSwatches = document.querySelectorAll(".bg-swatch");
 const bgColorPicker = document.getElementById("bgColorPicker");
 const repeatBtn = document.getElementById("repeatBtn");
+const playlistToast = document.getElementById("playlistToast");
 
 let currentIndex = -1;
 let activePlaylist = "All Songs";
@@ -27,6 +28,7 @@ let allSongs = [];
 let shuffleEnabled = false;
 let shuffleHistory = [];
 let repeatEnabled = false;
+let toastTimer = null;
 const playlists = {
   "All Songs": [],
 };
@@ -83,6 +85,20 @@ function applyBackground(color) {
       swatch.dataset.color?.toLowerCase() === color.toLowerCase(),
     );
   });
+}
+
+function showToast(message) {
+  if (!playlistToast) {
+    return;
+  }
+  playlistToast.textContent = message;
+  playlistToast.classList.add("show");
+  if (toastTimer) {
+    clearTimeout(toastTimer);
+  }
+  toastTimer = setTimeout(() => {
+    playlistToast.classList.remove("show");
+  }, 5000);
 }
 
 const storedTheme = localStorage.getItem("theme");
@@ -246,6 +262,7 @@ function addToPlaylist(song) {
   const exists = list.some((item) => item.name === song.name);
   if (!exists) {
     list.push(song);
+    showToast(`Added "${song.name}" to ${targetPlaylist}.`);
   }
   if (activePlaylist !== "All Songs") {
     renderActivePlaylist();
@@ -309,6 +326,11 @@ playPauseBtn.addEventListener("click", togglePlayPause);
 
 nextBtn.addEventListener("click", () => {
   if (songButtons.length === 0) {
+    return;
+  }
+  if (repeatEnabled) {
+    const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+    playAtIndex(safeIndex);
     return;
   }
   let nextIndex = (currentIndex + 1) % songButtons.length;

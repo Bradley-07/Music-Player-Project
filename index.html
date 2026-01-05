@@ -111,6 +111,7 @@
             <label for="playlistSelect">Add to playlist</label>
             <select id="playlistSelect"></select>
           </div>
+          <div class="toast" id="playlistToast" role="status" aria-live="polite"></div>
           <ul class="song-list" id="songList">
             {% for song in songs %}
               <li>
@@ -132,6 +133,7 @@
           <strong id="nowPlaying">Nothing selected</strong>
         </div>
         <div class="controls">
+          <button class="control-btn shuffle" id="shuffleBtn" type="button">Shuffle</button>
           <button class="control-btn" id="prevBtn" type="button" aria-label="Previous">
             <img src="{{ url_for('static', filename='previous.png') }}" alt="Previous">
           </button>
@@ -145,7 +147,6 @@
           <button class="control-btn" id="nextBtn" type="button" aria-label="Next">
             <img src="{{ url_for('static', filename='next.png') }}" alt="Next">
           </button>
-          <button class="control-btn shuffle" id="shuffleBtn" type="button">Shuffle</button>
           <button class="control-btn repeat" id="repeatBtn" type="button">Repeat</button>
         </div>
         <div class="time-display">
