@@ -449,6 +449,25 @@ function setActivePlaylist(name) {
   renderActivePlaylist();
 }
 
+function deletePlaylist(name) {
+  if (name === "All Songs") {
+    return;
+  }
+  delete playlists[name];
+  const item = playlistList.querySelector(
+    `.playlist-item[data-playlist="${CSS.escape(name)}"]`,
+  );
+  if (item) {
+    item.remove();
+  }
+  if (activePlaylist === name) {
+    setActivePlaylist("All Songs");
+  } else {
+    renderActivePlaylist();
+  }
+  updatePlaylistSelect();
+}
+
 function renderActivePlaylist() {
   if (activePlaylist === "All Songs") {
     buildSongList(allSongs, true, false);
@@ -605,7 +624,19 @@ createPlaylistBtn.addEventListener("click", () => {
   const li = document.createElement("li");
   li.className = "playlist-item";
   li.dataset.playlist = name;
-  li.textContent = name;
+  const label = document.createElement("span");
+  label.className = "playlist-label";
+  label.textContent = name;
+  const deleteBtn = document.createElement("button");
+  deleteBtn.className = "playlist-delete";
+  deleteBtn.type = "button";
+  deleteBtn.textContent = "Delete";
+  deleteBtn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    deletePlaylist(name);
+  });
+  li.appendChild(label);
+  li.appendChild(deleteBtn);
   li.addEventListener("click", () => setActivePlaylist(name));
   playlistList.appendChild(li);
   playlistNameInput.value = "";

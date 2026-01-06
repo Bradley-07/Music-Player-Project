@@ -414,10 +414,36 @@ body[data-theme="light"] {
   border: 1px solid transparent;
   color: var(--muted);
   cursor: pointer;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
 }
 
 .playlist-item.active {
   border-color: var(--accent);
+  color: var(--text);
+}
+
+.playlist-label {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playlist-delete {
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-alt);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.playlist-delete:hover {
+  border-color: var(--danger);
   color: var(--text);
 }
 
@@ -494,10 +520,12 @@ body[data-theme="light"] {
   font-weight: 600;
 }
 
-.add-btn {
+.add-btn,
+.queue-btn {
   min-width: 64px;
 }
 
+.add-btn:hover,
 .queue-btn:hover {
   border-color: var(--accent);
 }
@@ -565,22 +593,17 @@ body[data-theme="light"] {
   border-color: var(--danger);
 }
 
-.add-btn {
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--surface-border);
-  background: var(--surface-alt);
-  color: var(--text);
-  cursor: pointer;
-}
-
-.add-btn:hover {
-  border-color: var(--accent);
-}
-
 .add-btn:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+.queue-btn {
+  opacity: 0.6;
+}
+
+.queue-btn:hover {
+  opacity: 0.85;
 }
 
 .remove-btn {
