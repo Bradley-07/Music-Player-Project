@@ -431,6 +431,19 @@ body[data-theme="light"] {
   overflow: auto;
 }
 
+.song-header {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.2fr) minmax(140px, 1fr) auto auto 80px;
+  gap: 10px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0.4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--panel-glass-border);
+  margin-bottom: 12px;
+}
+
 .song-item {
   width: 100%;
   text-align: left;
@@ -444,9 +457,112 @@ body[data-theme="light"] {
 
 .song-row {
   display: grid;
+  grid-template-columns: minmax(160px, 1.2fr) minmax(140px, 1fr) auto auto 80px;
+  gap: 10px;
+  align-items: center;
+}
+
+.song-row > * {
+  min-width: 0;
+}
+
+.song-artist,
+.song-duration {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.song-duration {
+  text-align: right;
+}
+
+.song-item,
+.song-artist {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.add-btn,
+.queue-btn {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-alt);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.add-btn {
+  min-width: 64px;
+}
+
+.queue-btn:hover {
+  border-color: var(--accent);
+}
+
+.queue-panel {
+  display: grid;
+  gap: 10px;
+  padding-top: 6px;
+}
+
+.queue-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.queue-item {
+  display: grid;
   grid-template-columns: 1fr auto;
   gap: 10px;
   align-items: center;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+}
+
+.queue-title {
+  font-size: 14px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.queue-remove {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-alt);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.queue-remove:hover {
+  border-color: var(--danger);
+}
+
+.clear-btn {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-alt);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.clear-btn:hover {
+  border-color: var(--danger);
 }
 
 .add-btn {
@@ -786,6 +902,15 @@ audio {
 @media (max-width: 640px) {
   .layout {
     grid-template-columns: 1fr;
+  }
+
+  .song-header,
+  .song-row {
+    grid-template-columns: 1fr;
+  }
+
+  .song-duration {
+    text-align: left;
   }
 
   .folder-input {

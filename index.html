@@ -57,6 +57,15 @@
               <li class="playlist-item active" data-playlist="All Songs">All Songs</li>
             </ul>
           </div>
+          <div class="queue-panel">
+            <div class="section-header">
+              <h2>Queue</h2>
+              <button class="clear-btn" type="button" id="clearQueueBtn">Clear</button>
+            </div>
+            <ul class="queue-list" id="queueList">
+              <li class="empty">Queue is empty.</li>
+            </ul>
+          </div>
           <div class="appearance-panel">
             <div class="section-header">
               <h2>Appearance</h2>
@@ -114,6 +123,13 @@
             <h2>Songs</h2>
             <span class="count">{{ songs|length }}</span>
           </div>
+          <div class="song-header">
+            <span>Title</span>
+            <span>Artist</span>
+            <span class="song-duration">Duration</span>
+            <span></span>
+            <span></span>
+          </div>
           <div class="playlist-target">
             <label for="playlistSelect">Add to playlist</label>
             <select id="playlistSelect"></select>
@@ -124,7 +140,10 @@
               <li>
                 <div class="song-row">
                   <button class="song-item" data-file="{{ song }}">{{ song }}</button>
+                  <span class="song-artist">Unknown</span>
                   <button class="add-btn" type="button">Add</button>
+                  <button class="queue-btn" type="button">Queue</button>
+                  <span class="song-duration" data-file="{{ song }}">--:--</span>
                 </div>
               </li>
             {% else %}

@@ -23,6 +23,8 @@ const bgColorPicker = document.getElementById("bgColorPicker");
 const audioBgPicker = document.getElementById("audioBgPicker");
 const repeatBtn = document.getElementById("repeatBtn");
 const playlistToast = document.getElementById("playlistToast");
+const queueList = document.getElementById("queueList");
+const clearQueueBtn = document.getElementById("clearQueueBtn");
 
 let currentIndex = -1;
 let activePlaylist = "All Songs";
@@ -35,6 +37,8 @@ let repeatEnabled = false;
 let isSeeking = false;
 let previousVolume = 1;
 let toastTimer = null;
+const durationCache = {};
+let queue = [];
 const playlists = {
   "All Songs": [],
 };
@@ -288,8 +292,22 @@ function buildSongList(songs, showAdd, showRemove) {
     songBtn.className = "song-item";
     songBtn.dataset.file = song.name;
     songBtn.dataset.url = song.url;
-    songBtn.textContent = song.name;
+    const info = parseSongInfo(song.name);
+    songBtn.textContent = info.title;
     row.appendChild(songBtn);
+
+    const artist = document.createElement("span");
+    artist.className = "song-artist";
+    artist.textContent = info.artist || "Unknown";
+    row.appendChild(artist);
+
+    const duration = document.createElement("span");
+    duration.className = "song-duration";
+    duration.dataset.file = song.name;
+    duration.textContent = durationCache[song.name]
+      ? formatTime(durationCache[song.name])
+      : "--:--";
+    row.appendChild(duration);
 
     if (showAdd) {
       const addBtn = document.createElement("button");
@@ -302,6 +320,15 @@ function buildSongList(songs, showAdd, showRemove) {
       });
       row.appendChild(addBtn);
     }
+
+    const queueBtn = document.createElement("button");
+    queueBtn.className = "queue-btn";
+    queueBtn.type = "button";
+    queueBtn.textContent = "Queue";
+    queueBtn.addEventListener("click", () => {
+      addToQueue(song);
+    });
+    row.appendChild(queueBtn);
 
     if (showRemove) {
       const removeBtn = document.createElement("button");
@@ -320,6 +347,7 @@ function buildSongList(songs, showAdd, showRemove) {
 
   songButtons = Array.from(document.querySelectorAll(".song-item"));
   wireSongButtons();
+  preloadDurations(songs);
 }
 
 function wireSongButtons() {
@@ -342,8 +370,28 @@ function playAtIndex(index) {
   button.classList.add("active");
 
   const file = button.dataset.file;
-  nowPlaying.textContent = file;
+  nowPlaying.textContent = formatSongTitle(file);
   audioPlayer.src = button.dataset.url;
+  audioPlayer.play();
+  playPauseIcon.src = "/static/pause.png";
+  playPauseIcon.alt = "Pause";
+}
+
+function playSongFromQueue(item) {
+  if (!item) {
+    return;
+  }
+  const index = songButtons.findIndex(
+    (button) => button.dataset.file === item.name,
+  );
+  if (index >= 0) {
+    playAtIndex(index);
+    return;
+  }
+  songButtons.forEach((button) => button.classList.remove("active"));
+  currentIndex = -1;
+  nowPlaying.textContent = formatSongTitle(item.name);
+  audioPlayer.src = item.url;
   audioPlayer.play();
   playPauseIcon.src = "/static/pause.png";
   playPauseIcon.alt = "Pause";
@@ -446,6 +494,12 @@ nextBtn.addEventListener("click", () => {
     playAtIndex(safeIndex);
     return;
   }
+  if (queue.length > 0) {
+    const nextItem = queue.shift();
+    renderQueue();
+    playSongFromQueue(nextItem);
+    return;
+  }
   let nextIndex = (currentIndex + 1) % songButtons.length;
   if (shuffleEnabled && songButtons.length > 1) {
     nextIndex = getRandomIndex(currentIndex);
@@ -472,6 +526,12 @@ prevBtn.addEventListener("click", () => {
 
 audioPlayer.addEventListener("ended", () => {
   if (songButtons.length === 0) {
+    return;
+  }
+  if (queue.length > 0) {
+    const nextItem = queue.shift();
+    renderQueue();
+    playSongFromQueue(nextItem);
     return;
   }
   let nextIndex = (currentIndex + 1) % songButtons.length;
@@ -502,6 +562,11 @@ audioPlayer.addEventListener("loadedmetadata", () => {
   if (seekBar) {
     seekBar.value = "0";
     updateRangeBackground(seekBar, 0);
+  }
+  if (Number.isFinite(audioPlayer.duration) && songButtons[currentIndex]) {
+    const file = songButtons[currentIndex].dataset.file;
+    durationCache[file] = audioPlayer.duration;
+    updateDurationDisplays(file, audioPlayer.duration);
   }
   audioPlayer.title = `${currentTimeDisplay.textContent} / ${durationDisplay.textContent}`;
 });
@@ -562,6 +627,10 @@ shuffleBtn.addEventListener("click", () => {
   shuffleBtn.classList.toggle("active", shuffleEnabled);
 });
 
+if (clearQueueBtn) {
+  clearQueueBtn.addEventListener("click", clearQueue);
+}
+
 if (repeatBtn) {
   repeatBtn.addEventListener("click", () => {
     repeatEnabled = !repeatEnabled;
@@ -574,6 +643,7 @@ if (repeatBtn) {
 }
 
 initAllSongsFromDom();
+renderQueue();
 
 function formatTime(seconds) {
   if (!Number.isFinite(seconds)) {
@@ -582,6 +652,98 @@ function formatTime(seconds) {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
+
+function formatSongTitle(filename) {
+  if (!filename) {
+    return "Unknown";
+  }
+  const withoutExt = filename.replace(/\.[^/.]+$/, "");
+  const title = withoutExt.split(" - ")[0];
+  return title.trim() || withoutExt.trim();
+}
+
+function parseSongInfo(filename) {
+  const title = formatSongTitle(filename);
+  const withoutExt = filename.replace(/\.[^/.]+$/, "");
+  const parts = withoutExt.split(" - ");
+  let artist = parts.length > 1 ? parts.slice(1).join(" - ") : "";
+  artist = artist.replace(/\s*[\[(].*?[\])]\s*$/g, "").trim();
+  return {
+    title,
+    artist,
+  };
+}
+
+function updateDurationDisplays(file, duration) {
+  const display = formatTime(duration);
+  document.querySelectorAll(`.song-duration[data-file="${CSS.escape(file)}"]`)
+    .forEach((element) => {
+      element.textContent = display;
+    });
+}
+
+function addToQueue(song) {
+  queue.push(song);
+  renderQueue();
+  showToast(`Queued "${formatSongTitle(song.name)}".`);
+}
+
+function removeFromQueue(index) {
+  queue.splice(index, 1);
+  renderQueue();
+}
+
+function clearQueue() {
+  queue = [];
+  renderQueue();
+}
+
+function renderQueue() {
+  if (!queueList) {
+    return;
+  }
+  queueList.innerHTML = "";
+  if (queue.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "empty";
+    empty.textContent = "Queue is empty.";
+    queueList.appendChild(empty);
+    return;
+  }
+  queue.forEach((item, index) => {
+    const li = document.createElement("li");
+    li.className = "queue-item";
+    const title = document.createElement("span");
+    title.className = "queue-title";
+    title.textContent = formatSongTitle(item.name);
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "queue-remove";
+    removeBtn.type = "button";
+    removeBtn.textContent = "Remove";
+    removeBtn.addEventListener("click", () => removeFromQueue(index));
+    li.appendChild(title);
+    li.appendChild(removeBtn);
+    queueList.appendChild(li);
+  });
+}
+
+function preloadDurations(songs) {
+  songs.forEach((song) => {
+    if (durationCache[song.name]) {
+      return;
+    }
+    const probe = new Audio();
+    probe.preload = "metadata";
+    probe.src = song.url;
+    probe.addEventListener("loadedmetadata", () => {
+      if (Number.isFinite(probe.duration)) {
+        durationCache[song.name] = probe.duration;
+        updateDurationDisplays(song.name, probe.duration);
+      }
+      probe.src = "";
+    });
+  });
 }
 
 function updatePlaylistSelect(selected) {
