@@ -50,6 +50,8 @@ Two ways to load songs:
 2) Click Choose Folder to pick a directory in the browser. This loads files directly in the browser using the File API (no server scan).
 
 Notes:
+- On startup, the web app will auto-load the `songs` folder in the project root if it exists.
+- You can override the auto-load folder with `MUSIC_DIR` (for example: `set MUSIC_DIR=C:\Music` on Windows).
 - The path-based Load requires the folder to exist on the machine running Flask.
 - The folder picker uses `webkitdirectory` and works best in Chrome or Edge.
 - Songs shown in the list are local only; nothing is uploaded.
@@ -66,7 +68,7 @@ Notes:
 
 Behavior details:
 - All Songs always shows every loaded song
-- Playlists exist only in the current browser session
+- Playlists are saved per browser using localStorage when songs are loaded from the server path
 - Shuffle keeps a history for Previous
 
 ## Desktop App Usage (Tkinter)

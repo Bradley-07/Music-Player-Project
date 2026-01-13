@@ -26,6 +26,8 @@ const playlistToast = document.getElementById("playlistToast");
 const queueList = document.getElementById("queueList");
 const clearQueueBtn = document.getElementById("clearQueueBtn");
 
+const PLAYLIST_STORAGE_KEY = "musicPlayer.playlists.v1";
+
 let currentIndex = -1;
 let activePlaylist = "All Songs";
 let targetPlaylist = "";
@@ -42,6 +44,99 @@ let queue = [];
 const playlists = {
   "All Songs": [],
 };
+
+function shouldPersistPlaylists() {
+  return (
+    allSongs.length > 0 &&
+    allSongs.every((song) => !song.url.startsWith("blob:"))
+  );
+}
+
+function savePlaylistsToStorage() {
+  if (!shouldPersistPlaylists()) {
+    return;
+  }
+  const payload = {
+    playlists: {},
+    active: activePlaylist,
+    target: targetPlaylist,
+  };
+  Object.keys(playlists).forEach((name) => {
+    if (name === "All Songs") {
+      return;
+    }
+    payload.playlists[name] = (playlists[name] || []).map((song) => song.name);
+  });
+  localStorage.setItem(PLAYLIST_STORAGE_KEY, JSON.stringify(payload));
+}
+
+function createPlaylistItem(name) {
+  const li = document.createElement("li");
+  li.className = "playlist-item";
+  li.dataset.playlist = name;
+  const label = document.createElement("span");
+  label.className = "playlist-label";
+  label.textContent = name;
+  const deleteBtn = document.createElement("button");
+  deleteBtn.className = "playlist-delete";
+  deleteBtn.type = "button";
+  deleteBtn.textContent = "Delete";
+  deleteBtn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    deletePlaylist(name);
+  });
+  li.appendChild(label);
+  li.appendChild(deleteBtn);
+  li.addEventListener("click", () => setActivePlaylist(name));
+  playlistList.appendChild(li);
+  return li;
+}
+
+function loadPlaylistsFromStorage() {
+  const raw = localStorage.getItem(PLAYLIST_STORAGE_KEY);
+  if (!raw) {
+    return;
+  }
+  let stored = null;
+  try {
+    stored = JSON.parse(raw);
+  } catch {
+    return;
+  }
+  const storedLists = stored && stored.playlists ? stored.playlists : {};
+  const names = Object.keys(storedLists);
+  if (names.length === 0) {
+    return;
+  }
+
+  playlistList.querySelectorAll(".playlist-item").forEach((item) => {
+    if (item.dataset.playlist !== "All Songs") {
+      item.remove();
+    }
+  });
+  Object.keys(playlists).forEach((name) => {
+    if (name !== "All Songs") {
+      delete playlists[name];
+    }
+  });
+
+  const songByName = new Map(allSongs.map((song) => [song.name, song]));
+  names.forEach((name) => {
+    const items = (storedLists[name] || [])
+      .map((songName) => songByName.get(songName))
+      .filter(Boolean);
+    playlists[name] = items;
+    createPlaylistItem(name);
+  });
+
+  const nextActive =
+    stored.active && playlists[stored.active] ? stored.active : "All Songs";
+  setActivePlaylist(nextActive);
+  const nextTarget =
+    stored.target && playlists[stored.target] ? stored.target : undefined;
+  updatePlaylistSelect(nextTarget);
+  wirePlaylistDropTargets();
+}
 
 function applyTheme(theme) {
   document.body.dataset.theme = theme;
@@ -356,6 +451,22 @@ function wireSongButtons() {
       const index = songButtons.indexOf(button);
       playAtIndex(index);
     });
+    button.draggable = true;
+    button.addEventListener("dragstart", (event) => {
+      const name = button.dataset.file;
+      const url = button.dataset.url;
+      if (!event.dataTransfer || !name || !url) {
+        return;
+      }
+      const payload = JSON.stringify({ name, url });
+      event.dataTransfer.setData("application/json", payload);
+      event.dataTransfer.setData("text/plain", name);
+      event.dataTransfer.effectAllowed = "copy";
+      button.classList.add("dragging");
+    });
+    button.addEventListener("dragend", () => {
+      button.classList.remove("dragging");
+    });
   });
 }
 
@@ -415,19 +526,28 @@ function togglePlayPause() {
   }
 }
 
-function addToPlaylist(song) {
-  if (!targetPlaylist || targetPlaylist === "All Songs") {
+function addSongToNamedPlaylist(name, song) {
+  if (!name || name === "All Songs") {
+    showToast("Drop on a playlist to add songs.");
     return;
   }
-  const list = playlists[targetPlaylist];
+  const list = playlists[name];
+  if (!list) {
+    return;
+  }
   const exists = list.some((item) => item.name === song.name);
   if (!exists) {
     list.push(song);
-    showToast(`Added "${song.name}" to ${targetPlaylist}.`);
+    showToast(`Added "${song.name}" to ${name}.`);
   }
-  if (activePlaylist !== "All Songs") {
+  if (activePlaylist === name) {
     renderActivePlaylist();
   }
+  savePlaylistsToStorage();
+}
+
+function addToPlaylist(song) {
+  addSongToNamedPlaylist(targetPlaylist, song);
 }
 
 function removeFromPlaylist(song) {
@@ -438,6 +558,7 @@ function removeFromPlaylist(song) {
     (item) => item.name !== song.name,
   );
   renderActivePlaylist();
+  savePlaylistsToStorage();
 }
 
 function setActivePlaylist(name) {
@@ -447,6 +568,51 @@ function setActivePlaylist(name) {
     item.classList.toggle("active", item.dataset.playlist === name);
   });
   renderActivePlaylist();
+  savePlaylistsToStorage();
+}
+
+function wirePlaylistDropTargets() {
+  if (!playlistList) {
+    return;
+  }
+  playlistList.querySelectorAll(".playlist-item").forEach((item) => {
+    if (item.dataset.dropReady === "true") {
+      return;
+    }
+    item.dataset.dropReady = "true";
+    item.addEventListener("dragover", (event) => {
+      if (!event.dataTransfer) {
+        return;
+      }
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+      item.classList.add("drag-over");
+    });
+    item.addEventListener("dragleave", () => {
+      item.classList.remove("drag-over");
+    });
+    item.addEventListener("drop", (event) => {
+      if (!event.dataTransfer) {
+        return;
+      }
+      event.preventDefault();
+      item.classList.remove("drag-over");
+      const payload = event.dataTransfer.getData("application/json");
+      if (!payload) {
+        return;
+      }
+      let song = null;
+      try {
+        song = JSON.parse(payload);
+      } catch {
+        return;
+      }
+      if (!song || !song.name || !song.url) {
+        return;
+      }
+      addSongToNamedPlaylist(item.dataset.playlist, song);
+    });
+  });
 }
 
 function deletePlaylist(name) {
@@ -466,6 +632,7 @@ function deletePlaylist(name) {
     renderActivePlaylist();
   }
   updatePlaylistSelect();
+  savePlaylistsToStorage();
 }
 
 function renderActivePlaylist() {
@@ -489,6 +656,8 @@ function resetPlaylists() {
   activePlaylist = "All Songs";
   targetPlaylist = "";
   updatePlaylistSelect();
+  wirePlaylistDropTargets();
+  savePlaylistsToStorage();
 }
 
 function initAllSongsFromDom() {
@@ -500,6 +669,7 @@ function initAllSongsFromDom() {
   playlists["All Songs"] = allSongs;
   buildSongList(allSongs, true, false);
   updatePlaylistSelect();
+  loadPlaylistsFromStorage();
 }
 
 playPauseBtn.addEventListener("click", togglePlayPause);
@@ -621,36 +791,23 @@ createPlaylistBtn.addEventListener("click", () => {
     return;
   }
   playlists[name] = [];
-  const li = document.createElement("li");
-  li.className = "playlist-item";
-  li.dataset.playlist = name;
-  const label = document.createElement("span");
-  label.className = "playlist-label";
-  label.textContent = name;
-  const deleteBtn = document.createElement("button");
-  deleteBtn.className = "playlist-delete";
-  deleteBtn.type = "button";
-  deleteBtn.textContent = "Delete";
-  deleteBtn.addEventListener("click", (event) => {
-    event.stopPropagation();
-    deletePlaylist(name);
-  });
-  li.appendChild(label);
-  li.appendChild(deleteBtn);
-  li.addEventListener("click", () => setActivePlaylist(name));
-  playlistList.appendChild(li);
+  createPlaylistItem(name);
   playlistNameInput.value = "";
   setActivePlaylist(name);
   updatePlaylistSelect(name);
+  wirePlaylistDropTargets();
+  savePlaylistsToStorage();
 });
 
 playlistList.querySelectorAll(".playlist-item").forEach((item) => {
   item.addEventListener("click", () => setActivePlaylist(item.dataset.playlist));
 });
+wirePlaylistDropTargets();
 
 playlistSelect.addEventListener("change", () => {
   targetPlaylist = playlistSelect.value;
   renderActivePlaylist();
+  savePlaylistsToStorage();
 });
 
 shuffleBtn.addEventListener("click", () => {

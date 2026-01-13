@@ -6,6 +6,9 @@ app = Flask(__name__)
 music_directory = ""
 songs_cache = []
 repeat_enabled = False
+DEFAULT_MUSIC_DIR = os.environ.get(
+    "MUSIC_DIR", r"C:\Users\phsnm\OneDrive\MUSIC PLAYER PROJECT\songs"
+)
 
 
 def scan_songs(path):
@@ -24,6 +27,16 @@ def set_repeat(enabled):
     global repeat_enabled
     repeat_enabled = bool(enabled)
     return repeat_enabled
+
+
+def load_default_music():
+    global music_directory, songs_cache
+    if DEFAULT_MUSIC_DIR and os.path.isdir(DEFAULT_MUSIC_DIR):
+        music_directory = DEFAULT_MUSIC_DIR
+        songs_cache = scan_songs(DEFAULT_MUSIC_DIR)
+
+
+load_default_music()
 
 
 @app.route("/", methods=["GET", "POST"])
