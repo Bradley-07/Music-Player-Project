@@ -25,8 +25,15 @@ const repeatBtn = document.getElementById("repeatBtn");
 const playlistToast = document.getElementById("playlistToast");
 const queueList = document.getElementById("queueList");
 const clearQueueBtn = document.getElementById("clearQueueBtn");
+const eqBass = document.getElementById("eqBass");
+const eqMid = document.getElementById("eqMid");
+const eqTreble = document.getElementById("eqTreble");
+const eqBassValue = document.getElementById("eqBassValue");
+const eqMidValue = document.getElementById("eqMidValue");
+const eqTrebleValue = document.getElementById("eqTrebleValue");
 
 const PLAYLIST_STORAGE_KEY = "musicPlayer.playlists.v1";
+const EQ_STORAGE_KEY = "musicPlayer.eq.v1";
 
 let currentIndex = -1;
 let activePlaylist = "All Songs";
@@ -41,9 +48,103 @@ let previousVolume = 1;
 let toastTimer = null;
 const durationCache = {};
 let queue = [];
+let audioContext = null;
+let mediaSource = null;
+let eqFilters = null;
 const playlists = {
   "All Songs": [],
 };
+
+function ensureAudioContext() {
+  if (audioContext) {
+    if (audioContext.state === "suspended") {
+      audioContext.resume().catch(() => {});
+    }
+    return;
+  }
+  const Context = window.AudioContext || window.webkitAudioContext;
+  if (!Context) {
+    return;
+  }
+  audioContext = new Context();
+  mediaSource = audioContext.createMediaElementSource(audioPlayer);
+  const bass = audioContext.createBiquadFilter();
+  bass.type = "lowshelf";
+  bass.frequency.value = 120;
+  const mid = audioContext.createBiquadFilter();
+  mid.type = "peaking";
+  mid.frequency.value = 1000;
+  mid.Q.value = 1;
+  const treble = audioContext.createBiquadFilter();
+  treble.type = "highshelf";
+  treble.frequency.value = 3500;
+  mediaSource.connect(bass);
+  bass.connect(mid);
+  mid.connect(treble);
+  treble.connect(audioContext.destination);
+  eqFilters = { bass, mid, treble };
+  syncEqFilters();
+}
+
+function formatEqValue(value) {
+  const number = Number(value) || 0;
+  return `${number} dB`;
+}
+
+function syncEqFilters() {
+  if (!eqFilters) {
+    return;
+  }
+  eqFilters.bass.gain.value = Number(eqBass?.value || 0);
+  eqFilters.mid.gain.value = Number(eqMid?.value || 0);
+  eqFilters.treble.gain.value = Number(eqTreble?.value || 0);
+}
+
+function saveEqSettings() {
+  const payload = {
+    bass: Number(eqBass?.value || 0),
+    mid: Number(eqMid?.value || 0),
+    treble: Number(eqTreble?.value || 0),
+  };
+  localStorage.setItem(EQ_STORAGE_KEY, JSON.stringify(payload));
+}
+
+function updateEqLabels() {
+  if (eqBassValue && eqBass) {
+    eqBassValue.textContent = formatEqValue(eqBass.value);
+  }
+  if (eqMidValue && eqMid) {
+    eqMidValue.textContent = formatEqValue(eqMid.value);
+  }
+  if (eqTrebleValue && eqTreble) {
+    eqTrebleValue.textContent = formatEqValue(eqTreble.value);
+  }
+}
+
+function loadEqSettings() {
+  const raw = localStorage.getItem(EQ_STORAGE_KEY);
+  if (!raw) {
+    updateEqLabels();
+    return;
+  }
+  let stored = null;
+  try {
+    stored = JSON.parse(raw);
+  } catch {
+    updateEqLabels();
+    return;
+  }
+  if (eqBass && typeof stored.bass === "number") {
+    eqBass.value = String(stored.bass);
+  }
+  if (eqMid && typeof stored.mid === "number") {
+    eqMid.value = String(stored.mid);
+  }
+  if (eqTreble && typeof stored.treble === "number") {
+    eqTreble.value = String(stored.treble);
+  }
+  updateEqLabels();
+}
 
 function shouldPersistPlaylists() {
   return (
@@ -474,6 +575,7 @@ function playAtIndex(index) {
   if (index < 0 || index >= songButtons.length) {
     return;
   }
+  ensureAudioContext();
   currentIndex = index;
   shuffleHistory.push(index);
   songButtons.forEach((item) => item.classList.remove("active"));
@@ -492,6 +594,7 @@ function playSongFromQueue(item) {
   if (!item) {
     return;
   }
+  ensureAudioContext();
   const index = songButtons.findIndex(
     (button) => button.dataset.file === item.name,
   );
@@ -515,6 +618,7 @@ function togglePlayPause() {
     }
     return;
   }
+  ensureAudioContext();
   if (audioPlayer.paused) {
     audioPlayer.play();
     playPauseIcon.src = "/static/pause.png";
@@ -829,6 +933,24 @@ if (repeatBtn) {
     syncRepeatSetting(repeatEnabled);
   });
 }
+
+loadEqSettings();
+const eqControls = [
+  { input: eqBass, value: eqBassValue },
+  { input: eqMid, value: eqMidValue },
+  { input: eqTreble, value: eqTrebleValue },
+];
+eqControls.forEach(({ input, value }) => {
+  if (!input || !value) {
+    return;
+  }
+  input.addEventListener("input", () => {
+    ensureAudioContext();
+    value.textContent = formatEqValue(input.value);
+    syncEqFilters();
+    saveEqSettings();
+  });
+});
 
 initAllSongsFromDom();
 renderQueue();

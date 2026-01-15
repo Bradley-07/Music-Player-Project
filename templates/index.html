@@ -150,6 +150,60 @@
               <li class="empty">No songs loaded yet.</li>
             {% endfor %}
           </ul>
+          <div class="eq-panel" aria-label="Equalizer">
+            <div class="eq-header">
+              <h3>Equalizer</h3>
+              <span class="count">Bass / Vocal / Treble</span>
+            </div>
+            <div class="eq-control">
+              <div class="eq-label">
+                <span>Bass</span>
+                <span class="eq-value" id="eqBassValue">0 dB</span>
+              </div>
+              <input
+                class="eq-slider"
+                id="eqBass"
+                type="range"
+                min="-12"
+                max="12"
+                step="1"
+                value="0"
+                aria-label="Bass"
+              >
+            </div>
+            <div class="eq-control">
+              <div class="eq-label">
+                <span>Vocal</span>
+                <span class="eq-value" id="eqMidValue">0 dB</span>
+              </div>
+              <input
+                class="eq-slider"
+                id="eqMid"
+                type="range"
+                min="-12"
+                max="12"
+                step="1"
+                value="0"
+                aria-label="Vocal"
+              >
+            </div>
+            <div class="eq-control">
+              <div class="eq-label">
+                <span>Treble</span>
+                <span class="eq-value" id="eqTrebleValue">0 dB</span>
+              </div>
+              <input
+                class="eq-slider"
+                id="eqTreble"
+                type="range"
+                min="-12"
+                max="12"
+                step="1"
+                value="0"
+                aria-label="Treble"
+              >
+            </div>
+          </div>
         </section>
       </section>
 
